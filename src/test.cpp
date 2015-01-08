@@ -1,13 +1,13 @@
-#include <iostream>
-#include "freak.h"
+#include <cwchar>
+#include <highgui.h>
+#include "imagefreak.h"
 
-using namespace std;
+using namespace cv;
 
-int main(int argc, char **argv) {
-    const char *imageSpec[] = {"1.jpg", "2.jpg"};
-    t_offset offset_1 = {0, 0};
-    t_offset offset_2 = {100, 100};
-    t_offset offsets[] = {offset_1, offset_2};
+int main() {
+    //composite_fighter("1");
+    composite_score(L"PLAYER NAME", 1234567, L"PLAYER NAME", 200, 0);
 
-    compositeImages(argv[0], imageSpec, offsets, 2, "out.jpg");
+    waitKey(0);
+    return 0;
 }
