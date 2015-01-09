@@ -8,11 +8,11 @@
 using namespace std;
 using namespace cv;
 
-static const char *FIGHTER_CANVAS = "assets/fighter_canvas.png";
-static const char *SCORE_CANVAS = "assets/score_canvas.png";
+static const char *FIGHTER_CANVAS = "../assets/fighter_canvas.png";
+static const char *SCORE_CANVAS = "../assets/score_canvas.png";
 
-static const char *UNICODE_FONT = "assets/wqy-microhei.ttc";
-static const char *ASCII_FONT = "assets/Aero.ttf";
+static const char *UNICODE_FONT = "../assets/wqy-microhei.ttc";
+static const char *ASCII_FONT = "../assets/Aero.ttf";
 
 static const Point FIGHTER_OFFSET(-50, -160);
 
@@ -20,9 +20,12 @@ static const Scalar PLAYER_NAME_COLOR = CV_RGB(0x38, 0xce, 0xff);
 static const Point PLAYER1_NAME_OFFSET(480, 146);
 static const Point PLAYER2_NAME_OFFSET(380, 434);
 
-static const Point PLAYER1_SCORE_CENTER = Point(640, 156);
-static const Point PLAYER2_SCORE_CENTER = Point(540, 444);
+static const Point PLAYER1_SCORE_CENTER(640, 156);
+static const Point PLAYER2_SCORE_CENTER(540, 444);
 static const int PLAYER_SCORE_WIDTH = 34;
+
+static const Point PLAYER1_AVATAR_OFFSET(356, 120);
+static const Point PLAYER2_AVATAR_OFFSET(762, 406);
 
 
 void reverseStr(char *s) {
@@ -93,7 +96,7 @@ void compositeImages(const Mat &background,
     }
 }
 
-void printScore(Mat &canvas, const char *s, Point center) {
+void printScore(Mat &canvas, const char *s, int idx, Point center) {
     char numberImageName[20] = {0};
     int digitWidth, distance = 0;
     Mat numberImage;
@@ -106,7 +109,7 @@ void printScore(Mat &canvas, const char *s, Point center) {
 
     int originX = center.x - distance / 2;
     for (int i = 0; i < strlen(s); i++) {
-        sprintf(numberImageName, "assets/numbers/%c.png", (s[i] == ',') ? 'x' : s[i]);
+        sprintf(numberImageName, "../assets/numbers/%c%c.png", (s[i] == ',') ? 'x' : s[i], (idx == 1) ? 'a' : 'b');
         numberImage = imread(numberImageName, -1);
         compositeImages(canvas, numberImage, canvas, Point(originX + offsetX[i], center.y));
     }
@@ -116,7 +119,7 @@ bool compositeFighter(const char *fighterName) {
     Mat bg, fg, dst;
 
     char fighterImageName[50] = {0};
-    sprintf(fighterImageName, "fighters/%s.png", fighterName);
+    sprintf(fighterImageName, "../fighters/%s.png", fighterName);
 
     // -1 to read alpha channel
     bg = imread(FIGHTER_CANVAS, -1);
@@ -125,7 +128,7 @@ bool compositeFighter(const char *fighterName) {
     compositeImages(bg, fg, dst, FIGHTER_OFFSET);
 
     char outputPath[50] = {0};
-    sprintf(outputPath, "static/%s.png", fighterName);
+    sprintf(outputPath, "../static/%s.png", fighterName);
 
     imwrite(outputPath, dst);
 
@@ -133,11 +136,14 @@ bool compositeFighter(const char *fighterName) {
 }
 
 bool compositeScore(const wchar_t *player1,
+                    const char *player1_avatar,
                     int score1,
                     const wchar_t *player2,
+                    const char *player2_avatar,
                     int score2,
+                    const char *output,
                     bool isUnicode) {
-    Mat bg;
+    Mat bg, avatar1, avatar2;
 
     i18nText i18n;
     if (isUnicode) {
@@ -148,19 +154,37 @@ bool compositeScore(const wchar_t *player1,
 
     // -1 to read alpha channel
     bg = imread(SCORE_CANVAS, -1);
+
+    // Avatars
+    char a1[100] = {0};
+    char a2[100] = {0};
+
+    sprintf(a1, "avatars/%s.png", player1_avatar);
+    sprintf(a2, "avatars/%s.png", player2_avatar);
+
+    avatar1 = imread(a1, -1);
+    avatar2 = imread(a2, -1);
+
+    compositeImages(bg, avatar1, bg, PLAYER1_AVATAR_OFFSET);
+    compositeImages(bg, avatar2, bg, PLAYER2_AVATAR_OFFSET);
+
+    // Names
     i18n.putText(bg, player1, PLAYER1_NAME_OFFSET, PLAYER_NAME_COLOR);
     i18n.putText(bg, player2, PLAYER2_NAME_OFFSET, PLAYER_NAME_COLOR);
 
+    // Scores
     char s1[20] = {0};
     char s2[20] = {0};
 
     int2str(s1, score1);
     int2str(s2, score2);
 
-    printScore(bg, s1, PLAYER1_SCORE_CENTER);
-    printScore(bg, s2, PLAYER2_SCORE_CENTER);
+    printScore(bg, s1, 1, PLAYER1_SCORE_CENTER);
+    printScore(bg, s2, 2, PLAYER2_SCORE_CENTER);
 
-    imwrite("static/2.png", bg);
+    char outputPath[100] = {0};
+    sprintf(outputPath, "../static/%s.png", output);
+    imwrite(outputPath, bg);
 
     return true;
 }
