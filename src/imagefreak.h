@@ -3,24 +3,30 @@
 
 #include <cwchar>
 
-//struct PlayerData {
-    //const wchar_t *name;
-    //const char *avatar;
-    //int score;
-//};
+#define STATUS_OK  0
+#define STATUS_ERR 1
 
 extern "C" {
 
-int composite_fighter(const char *fighter_name);
+typedef void (*CALLBACK_FUNC)(int status, const char *err_msg);
 
-int composite_score(const wchar_t *player1,
-                    const char *player1_avatar,
-                    int score1,
-                    const wchar_t *player2,
-                    const char *player2_avatar,
-                    int score2,
-                    const char *output,
-                    bool isUnicode);
+struct PlayerData {
+    const wchar_t *name;
+    const char *avatar;
+    int score;
+};
+
+void composite_fighter(const char *fighter_name, CALLBACK_FUNC cb);
+
+void composite_score(const wchar_t *player1_name,
+                     const char *player1_avatar,
+                     int player1_score,
+                     const wchar_t *player2_name,
+                     const char *player2_avatar,
+                     int player2_score,
+                     const char *output,         // The output image path
+                     int isUnicode,              // If player's name is unicode
+                     CALLBACK_FUNC cb);
 
 }
 

@@ -1,6 +1,7 @@
 #include <cv.h>
 #include <highgui.h>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include "i18nText.h"
 #include "composite.h"
@@ -8,11 +9,13 @@
 using namespace std;
 using namespace cv;
 
-static const char *FIGHTER_CANVAS = "../assets/fighter_canvas.png";
-static const char *SCORE_CANVAS = "../assets/score_canvas.png";
 
-static const char *UNICODE_FONT = "../assets/wqy-microhei.ttc";
-static const char *ASCII_FONT = "../assets/Aero.ttf";
+// Pre-defined constants //
+static const char *FIGHTER_CANVAS = "assets/fighter_canvas.png";
+static const char *SCORE_CANVAS = "assets/score_canvas.png";
+
+static const char *UNICODE_FONT = "assets/wqy-microhei.ttc";
+static const char *ASCII_FONT = "assets/Aero.ttf";
 
 static const Point FIGHTER_OFFSET(-50, -160);
 
@@ -21,13 +24,15 @@ static const Point PLAYER1_NAME_OFFSET(480, 146);
 static const Point PLAYER2_NAME_OFFSET(380, 434);
 
 static const Point PLAYER1_SCORE_CENTER(640, 156);
-static const Point PLAYER2_SCORE_CENTER(540, 444);
+static const Point PLAYER2_SCORE_CENTER(546, 444);
 static const int PLAYER_SCORE_WIDTH = 34;
 
 static const Point PLAYER1_AVATAR_OFFSET(356, 120);
 static const Point PLAYER2_AVATAR_OFFSET(762, 406);
 
-
+//
+// Reverse a c-string
+//
 void reverseStr(char *s) {
     for (int i = 0, j = strlen(s) - 1; i < j; i++, j--) {
         char tmp = s[i];
@@ -36,6 +41,9 @@ void reverseStr(char *s) {
     }
 }
 
+//
+// Convert an int value to string with such format: 'x,xxx,xxx'
+//
 void int2str(char *s, int value) {
     for (int i = 0; value != 0; i++, value /= 10) {
         if (i == 3) {
@@ -50,6 +58,9 @@ void int2str(char *s, int value) {
     reverseStr(s);
 }
 
+//
+// Composite two images
+//
 void compositeImages(const Mat &background,
                      const Mat &foreground,
                      Mat &output,
@@ -96,95 +107,117 @@ void compositeImages(const Mat &background,
     }
 }
 
+//
+// Put score data onto canvas
+//
 void printScore(Mat &canvas, const char *s, int idx, Point center) {
-    char numberImageName[20] = {0};
     int digitWidth, distance = 0;
     Mat numberImage;
     int offsetX[20] = {0};
 
-    for (int i = 0; i < strlen(s); i++, distance += digitWidth) {
+    for (size_t i = 0; i < strlen(s); i++, distance += digitWidth) {
         offsetX[i] = distance;
         digitWidth = (s[i+1] && s[i+1] == ',') ? PLAYER_SCORE_WIDTH / 2 : PLAYER_SCORE_WIDTH;
     }
 
     int originX = center.x - distance / 2;
-    for (int i = 0; i < strlen(s); i++) {
-        sprintf(numberImageName, "../assets/numbers/%c%c.png", (s[i] == ',') ? 'x' : s[i], (idx == 1) ? 'a' : 'b');
+    for (size_t i = 0; i < strlen(s); i++) {
+        char numberImageName[20] = {0};
+        sprintf(numberImageName, "assets/numbers/%c%c.png", (s[i] == ',') ? 'x' : s[i], (idx == 1) ? 'a' : 'b');
         numberImage = imread(numberImageName, -1);
         compositeImages(canvas, numberImage, canvas, Point(originX + offsetX[i], center.y));
     }
 }
 
-bool compositeFighter(const char *fighterName) {
+//
+// Composite a fighter
+//
+void compositeFighter(const char *fighterName, CALLBACK_FUNC cb) {
     Mat bg, fg, dst;
 
     char fighterImageName[50] = {0};
-    sprintf(fighterImageName, "../fighters/%s.png", fighterName);
+    sprintf(fighterImageName, "fighters/%s.png", fighterName);
 
-    // -1 to read alpha channel
-    bg = imread(FIGHTER_CANVAS, -1);
-    fg = imread(fighterImageName, -1);
+    try {
+        // -1 to read alpha channel
+        bg = imread(FIGHTER_CANVAS, -1);
+        fg = imread(fighterImageName, -1);
 
-    compositeImages(bg, fg, dst, FIGHTER_OFFSET);
+        compositeImages(bg, fg, dst, FIGHTER_OFFSET);
 
-    char outputPath[50] = {0};
-    sprintf(outputPath, "../static/%s.png", fighterName);
+        char outputPath[50] = {0};
+        sprintf(outputPath, "static/%s.png", fighterName);
 
-    imwrite(outputPath, dst);
+        imwrite(outputPath, dst);
 
-    return true;
+        if (cb) {
+            cb(STATUS_OK, NULL);
+        }
+    } catch (cv::Exception &e) {
+        if (cb) {
+            cb(STATUS_ERR, e.what());
+        }
+    }
 }
 
-bool compositeScore(const wchar_t *player1,
-                    const char *player1_avatar,
-                    int score1,
-                    const wchar_t *player2,
-                    const char *player2_avatar,
-                    int score2,
+//
+// Composite game score
+//
+void compositeScore(const PlayerData *player1,
+                    const PlayerData *player2,
                     const char *output,
-                    bool isUnicode) {
+                    bool isUnicode,
+                    CALLBACK_FUNC cb) {
     Mat bg, avatar1, avatar2;
 
-    i18nText i18n;
-    if (isUnicode) {
-        i18n.setFont(UNICODE_FONT);
-    } else {
-        i18n.setFont(ASCII_FONT);
+    try {
+        // -1 to read alpha channel
+        bg = imread(SCORE_CANVAS, -1);
+
+        // Avatars
+        char a1[100] = {0};
+        char a2[100] = {0};
+
+        sprintf(a1, "avatars/%s.png", player1->avatar);
+        sprintf(a2, "avatars/%s.png", player2->avatar);
+
+        avatar1 = imread(a1, -1);
+        avatar2 = imread(a2, -1);
+
+        compositeImages(bg, avatar1, bg, PLAYER1_AVATAR_OFFSET);
+        compositeImages(bg, avatar2, bg, PLAYER2_AVATAR_OFFSET);
+
+        i18nText i18n;
+        if (isUnicode) {
+            i18n.setFont(UNICODE_FONT);
+        } else {
+            i18n.setFont(ASCII_FONT);
+        }
+
+        // Names
+        i18n.putText(bg, player1->name, PLAYER1_NAME_OFFSET, PLAYER_NAME_COLOR);
+        i18n.putText(bg, player2->name, PLAYER2_NAME_OFFSET, PLAYER_NAME_COLOR);
+
+        // Scores
+        char score1[20] = {0};
+        char score2[20] = {0};
+
+        int2str(score1, player1->score);
+        int2str(score2, player2->score);
+
+        printScore(bg, score1, 1, PLAYER1_SCORE_CENTER);
+        printScore(bg, score2, 2, PLAYER2_SCORE_CENTER);
+
+        char outputPath[100] = {0};
+        sprintf(outputPath, "static/%s.png", output);
+        imwrite(outputPath, bg);
+
+        if (cb) {
+            cb(STATUS_OK, NULL);
+        }
+    } catch (cv::Exception &e) {
+        if (cb) {
+            cb(STATUS_ERR, e.what());
+        }
     }
-
-    // -1 to read alpha channel
-    bg = imread(SCORE_CANVAS, -1);
-
-    // Avatars
-    char a1[100] = {0};
-    char a2[100] = {0};
-
-    sprintf(a1, "avatars/%s.png", player1_avatar);
-    sprintf(a2, "avatars/%s.png", player2_avatar);
-
-    avatar1 = imread(a1, -1);
-    avatar2 = imread(a2, -1);
-
-    compositeImages(bg, avatar1, bg, PLAYER1_AVATAR_OFFSET);
-    compositeImages(bg, avatar2, bg, PLAYER2_AVATAR_OFFSET);
-
-    // Names
-    i18n.putText(bg, player1, PLAYER1_NAME_OFFSET, PLAYER_NAME_COLOR);
-    i18n.putText(bg, player2, PLAYER2_NAME_OFFSET, PLAYER_NAME_COLOR);
-
-    // Scores
-    char s1[20] = {0};
-    char s2[20] = {0};
-
-    int2str(s1, score1);
-    int2str(s2, score2);
-
-    printScore(bg, s1, 1, PLAYER1_SCORE_CENTER);
-    printScore(bg, s2, 2, PLAYER2_SCORE_CENTER);
-
-    char outputPath[100] = {0};
-    sprintf(outputPath, "../static/%s.png", output);
-    imwrite(outputPath, bg);
-
-    return true;
 }

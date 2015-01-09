@@ -2,15 +2,14 @@
 #define COMPOSITE_H
 
 #include <cwchar>
+#include "imagefreak.h"
 
-bool compositeFighter(const char *fighterName);
-bool compositeScore(const wchar_t *player1,
-                    const char *player1_avatar,
-                    int score1,
-                    const wchar_t *player2,
-                    const char *player2_avatar,
-                    int score2,
+void compositeFighter(const char *fighterName, CALLBACK_FUNC cb);
+
+void compositeScore(const PlayerData *player1,
+                    const PlayerData *player2,
                     const char *output,
-                    bool isUnicode);
+                    bool isUnicode,
+                    CALLBACK_FUNC cb);
 
 #endif

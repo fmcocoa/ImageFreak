@@ -1,13 +1,20 @@
+#include <iostream>
 #include <cwchar>
-#include <highgui.h>
 #include "imagefreak.h"
+#include "composite.h"
 
-using namespace cv;
+using namespace std;
+
+void cb(int status, const char *err_msg) {
+    cout << "Status: " << status << endl;
+}
 
 int main() {
     //composite_fighter("1");
-    composite_score(L"PLAYER NAME", "1", 1234567, L"PLAYER NAME", "1", 200, "abc", 0);
 
-    waitKey(0);
+    PlayerData player1 = {L"JONNY", "1", 123456789};
+    PlayerData player2 = {L"CAROLINA", "1", 2345678};
+    compositeScore(&player1, &player2, "final", 0, cb);
+
     return 0;
 }
