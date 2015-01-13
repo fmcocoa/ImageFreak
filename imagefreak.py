@@ -48,10 +48,12 @@ def composite_score(player1, player2, cb):
 
 if __name__ == '__main__':
     def cb(status, err_msg):
-        print 'Status: ', status
+        pass
+        #print 'Status: ', status
 
-    #composite_fighter('1', cb)
+    for i in range(10000):
+        composite_fighter('1', cb)
 
-    p1 = PlayerData('JOSHEP', '1', 12345678)
-    p2 = PlayerData('VINCENT', '1', 2345678)
-    composite_score(p1, p2, cb)
+    #p1 = PlayerData('JOSHEP', '1', 12345678)
+    #p2 = PlayerData('VINCENT', '1', 2345678)
+    #composite_score(p1, p2, cb)

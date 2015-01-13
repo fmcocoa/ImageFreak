@@ -27,8 +27,8 @@ static const Point PLAYER1_SCORE_CENTER(640, 156);
 static const Point PLAYER2_SCORE_CENTER(546, 444);
 static const int PLAYER_SCORE_WIDTH = 34;
 
-static const Point PLAYER1_AVATAR_OFFSET(356, 120);
-static const Point PLAYER2_AVATAR_OFFSET(762, 406);
+static const Point PLAYER1_AVATAR_OFFSET(353, 117);
+static const Point PLAYER2_AVATAR_OFFSET(763, 404);
 
 //
 // Reverse a c-string
@@ -63,11 +63,7 @@ void int2str(char *s, int value) {
 //
 void compositeImages(const Mat &background,
                      const Mat &foreground,
-                     Mat &output,
                      Point2i location) {
-    background.copyTo(output);
-
-
     // start at the row indicated by location, or at row 0 if location.y is negative.
     for(int y = std::max(location.y , 0); y < background.rows; ++y) {
         int fY = y - location.y; // because of the translation
@@ -95,12 +91,12 @@ void compositeImages(const Mat &background,
             // and now combine the background and foreground pixel, using the opacity, 
 
             // but only if opacity > 0.
-            for(int c = 0; opacity > 0 && c < output.channels(); ++c) {
+            for(int c = 0; opacity > 0 && c < background.channels(); ++c) {
                 unsigned char foregroundPx =
                     foreground.data[fY * foreground.step + fX * foreground.channels() + c];
                 unsigned char backgroundPx =
                     background.data[y * background.step + x * background.channels() + c];
-                output.data[y*output.step + output.channels()*x + c] =
+                background.data[y*background.step + background.channels()*x + c] =
                     backgroundPx * (1.-opacity) + foregroundPx * opacity;
             }
         }
@@ -125,7 +121,7 @@ void printScore(Mat &canvas, const char *s, int idx, Point center) {
         char numberImageName[20] = {0};
         sprintf(numberImageName, "assets/numbers/%c%c.png", (s[i] == ',') ? 'x' : s[i], (idx == 1) ? 'a' : 'b');
         numberImage = imread(numberImageName, -1);
-        compositeImages(canvas, numberImage, canvas, Point(originX + offsetX[i], center.y));
+        compositeImages(canvas, numberImage, Point(originX + offsetX[i], center.y));
     }
 }
 
@@ -133,7 +129,7 @@ void printScore(Mat &canvas, const char *s, int idx, Point center) {
 // Composite a fighter
 //
 void compositeFighter(const char *fighterName, CALLBACK_FUNC cb) {
-    Mat bg, fg, dst;
+    Mat bg, fg;
 
     char fighterImageName[50] = {0};
     sprintf(fighterImageName, "fighters/%s.png", fighterName);
@@ -143,12 +139,12 @@ void compositeFighter(const char *fighterName, CALLBACK_FUNC cb) {
         bg = imread(FIGHTER_CANVAS, -1);
         fg = imread(fighterImageName, -1);
 
-        compositeImages(bg, fg, dst, FIGHTER_OFFSET);
+        compositeImages(bg, fg, FIGHTER_OFFSET);
 
         char outputPath[50] = {0};
         sprintf(outputPath, "static/%s.png", fighterName);
 
-        imwrite(outputPath, dst);
+        imwrite(outputPath, bg);
 
         if (cb) {
             cb(STATUS_OK, NULL);
@@ -169,6 +165,7 @@ void compositeScore(const PlayerData *player1,
                     bool isUnicode,
                     CALLBACK_FUNC cb) {
     Mat bg, avatar1, avatar2;
+    Mat mask, roi;
 
     try {
         // -1 to read alpha channel
@@ -178,14 +175,21 @@ void compositeScore(const PlayerData *player1,
         char a1[100] = {0};
         char a2[100] = {0};
 
-        sprintf(a1, "avatars/%s.png", player1->avatar);
-        sprintf(a2, "avatars/%s.png", player2->avatar);
+        sprintf(a1, "avatars/%s.jpg", player1->avatar);
+        sprintf(a2, "avatars/%s.jpg", player2->avatar);
 
-        avatar1 = imread(a1, -1);
-        avatar2 = imread(a2, -1);
+        avatar1 = imread(a1);
+        mask = imread(a1, 0);
+        roi = bg(Rect(PLAYER1_AVATAR_OFFSET.x, PLAYER1_AVATAR_OFFSET.y, mask.cols, mask.rows));
+        avatar1.copyTo(roi, mask);
 
-        compositeImages(bg, avatar1, bg, PLAYER1_AVATAR_OFFSET);
-        compositeImages(bg, avatar2, bg, PLAYER2_AVATAR_OFFSET);
+        avatar2 = imread(a2);
+        mask = imread(a2, 0);
+        roi = bg(Rect(PLAYER2_AVATAR_OFFSET.x, PLAYER2_AVATAR_OFFSET.y, mask.cols, mask.rows));
+        avatar2.copyTo(roi, mask);
+
+        //compositeImages(bg, avatar1, PLAYER1_AVATAR_OFFSET);
+        //compositeImages(bg, avatar2, PLAYER2_AVATAR_OFFSET);
 
         i18nText i18n;
         if (isUnicode) {

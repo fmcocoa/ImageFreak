@@ -20,3 +20,6 @@ libimagefreak.so: $(SOURCES)
 clean:
 	$(RM) src/*.o
 	$(RM) libimagefreak.so
+
+test: $(SOURCES) src/test.cpp
+	$(CC) $^ $(CFLAGS) -o test_imagefreak -g
