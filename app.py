@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
+import shutil
+import urlparse
+
 import requests
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
+
+from imagefreak import PlayerData, composite_score
 
 app = Flask(__name__)
 
@@ -8,46 +13,50 @@ app = Flask(__name__)
 FB_GRAPH_API = "graph.facebook.com/#?fields=name,picture.width(86).height(86)"
 
 
-@app.route('/feed-fighter', methods=['POST'])
-def feed_fighter():
-    fighter_name = request.form.get('fighter_name', None)
+#@app.route('/feed-fighter')
+#def feed_fighter():
+    #fighter_name = request.args.get('fighter_name', None)
 
-    if fighter_name is None:
-        return jsonify({'status': False, 'err_msg': 'missing parameter'})
+    #if fighter_name is None:
+        #return jsonify({'status': False, 'err_msg': 'missing parameter'})
 
-    return jsonify({'status': True, 'err_msg': None})
+    #return jsonify({'status': True, 'err_msg': None})
 
 
-@app.route('/feed-score', methods=['POST'])
-def feed_score():
-    uid1 = request.form.get('uid1', None)
-    score1 = reuquest.form.get('score1', 0)
+@app.route('/gz-feed/battle')
+def feed_battle():
+    a_name = request.args.get('a_name', None)
+    a_pic_name = a_name.encode('ascii', 'xmlcharrefreplace')
+    a_pic_link = request.args.get('a_pic', None)
+    a_score = request.args.get('a_score', None)
 
-    uid2 = request.form.get('uid2', None)
-    score2 = reuquest.form.get('score2', 0)
+    b_name = request.args.get('b_name', None)
+    b_pic_name = b_name.encode('ascii', 'xmlcharrefreplace')
+    b_pic_link = request.args.get('b_pic', None)
+    b_score = request.args.get('b_score', None)
 
-    if uid1 is None or score1 == 0 \
-            or uid2 is None or score2 == 0:
+    if None in (a_name, a_pic_link, a_score, b_name, b_pic_link, b_score):
         return jsonify({'status': False, 'err_msg': 'missing parameters'})
 
-    # Grab player names and avatars from facebook
-    try:
-        r1 = requests.get(FB_GRAPH_API.replace('#', uid1)).json()
-        r2 = requests.get(FB_GRAPH_API.replace('#', uid2)).json()
+    a_response = requests.get(urlparse.unquote(a_pic_link), stream=True)
+    with open('avatars/%s' % a_pic_name, 'wb') as f:
+        shutil.copyfileobj(a_response.raw, f);
+    del a_response
 
-        uname1 = r1['name']
-        pic1 = r1['picture']['url']
+    b_response = requests.get(urlparse.unquote(b_pic_link), stream=True)
+    with open('avatars/%s' % b_pic_name, 'wb') as f:
+        shutil.copyfileobj(b_response.raw, f);
+    del b_response
 
-        uname2 = r2'name']
-        pic2 = r2['picture']['url']
-    except:
-        return jsonify({'status': False,
-                        'err_msg': 'failed to grab user info from facebook'})
+    player_a = PlayerData(a_name, a_pic_name, a_score)
+    player_b = PlayerData(b_name, b_pic_name, b_score)
+
+    dst = '%s_%s-%s_%s.jpg' % (a_pic_name, a_score, b_pic_name, b_score)
+    composite_score(player_a, player_b, dst, None)
 
     # Get score image
-
-    return jsonify({'status': True, 'err_msg': None})
+    return send_from_directory(directory='../gz-feed/battle', filename=dst)
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)

@@ -142,7 +142,7 @@ void compositeFighter(const char *fighterName, CALLBACK_FUNC cb) {
         compositeImages(bg, fg, FIGHTER_OFFSET);
 
         char outputPath[50] = {0};
-        sprintf(outputPath, "static/%s.png", fighterName);
+        sprintf(outputPath, "static/%s.jpg", fighterName);
 
         imwrite(outputPath, bg);
 
@@ -175,8 +175,8 @@ void compositeScore(const PlayerData *player1,
         char a1[100] = {0};
         char a2[100] = {0};
 
-        sprintf(a1, "avatars/%s.jpg", player1->avatar);
-        sprintf(a2, "avatars/%s.jpg", player2->avatar);
+        sprintf(a1, "avatars/%s", player1->avatar);
+        sprintf(a2, "avatars/%s", player2->avatar);
 
         avatar1 = imread(a1);
         mask = imread(a1, 0);
@@ -213,7 +213,7 @@ void compositeScore(const PlayerData *player1,
         printScore(bg, score2, 2, PLAYER2_SCORE_CENTER);
 
         char outputPath[100] = {0};
-        sprintf(outputPath, "static/%s.png", output);
+        sprintf(outputPath, "static/%s", output);
         imwrite(outputPath, bg);
 
         if (cb) {

@@ -7,15 +7,16 @@ from ctypes import (
     c_wchar_p
 )
 
-imagefreak = cdll.LoadLibrary('libimagefreak.so')
+imagefreak = cdll.LoadLibrary('/sgn/cdn/gz-image-compositor/libimagefreak.so')
 CB_FUNC = CFUNCTYPE(None, c_int, c_char_p)
 
 
 def is_unicode(s):
-    if isinstance(s, unicode):
-        return True
-    else:
+    try:
+        s.decode('ascii')
         return False
+    except:
+        return True
 
 
 class PlayerData(object):
@@ -30,17 +31,21 @@ def composite_fighter(fighter_name, cb):
     imagefreak.composite_fighter(_fighter_name, _cb)
 
 
-def composite_score(player1, player2, cb):
+def composite_score(player1, player2, dst, cb):
     iswchar = is_unicode(player1.name) or is_unicode(player2.name)
-    _cb = CB_FUNC(cb)
-    output = c_char_p('xxx')
+
+    if cb is not None:
+        _cb = CB_FUNC(cb)
+    else:
+        _cb = None
+    output = c_char_p(dst)
 
     imagefreak.composite_score(c_wchar_p(player1.name),
                                c_char_p(player1.avatar),
-                               c_int(123456789),
+                               c_int(int(player1.score)),
                                c_wchar_p(player2.name),
                                c_char_p(player2.avatar),
-                               c_int(23456789),
+                               c_int(int(player2.score)),
                                output,
                                iswchar,
                                _cb)
