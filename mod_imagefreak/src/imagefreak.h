@@ -25,6 +25,7 @@ void composite_score(const wchar_t *player1_name,
                      const char *player2_avatar,
                      int player2_score,
                      const char *output,         // The output image path
+                     const char *lang,           // Language
                      int isUnicode,              // If player's name is unicode
                      CALLBACK_FUNC cb);
 

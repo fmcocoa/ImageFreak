@@ -20,20 +20,23 @@ static const char *ASCII_FONT = "assets/Aero.ttf";
 static const Point FIGHTER_OFFSET(-50, -160);
 
 static const Scalar PLAYER_NAME_COLOR = CV_RGB(0x38, 0xce, 0xff);
-static const Point PLAYER1_NAME_OFFSET(480, 146);
-static const Point PLAYER2_NAME_OFFSET(380, 434);
+static const Point PLAYER1_NAME_OFFSET(480, 160);
+static const Point PLAYER2_NAME_OFFSET(380, 448);
 
-static const Point PLAYER1_SCORE_CENTER(640, 156);
-static const Point PLAYER2_SCORE_CENTER(546, 444);
+static const Point PLAYER1_SCORE_CENTER(640, 170);
+static const Point PLAYER2_SCORE_CENTER(546, 458);
 static const int PLAYER_SCORE_WIDTH = 34;
 
-static const Point PLAYER1_AVATAR_OFFSET(353, 117);
-static const Point PLAYER2_AVATAR_OFFSET(763, 404);
+static const Point PLAYER1_AVATAR_OFFSET(353, 131);
+static const Point PLAYER2_AVATAR_OFFSET(763, 418);
+static const Size AVATAR_SIZE(86, 86);
+
+static const Point RANK_UP_OFFSET(250, 250);
 
 //
 // Reverse a c-string
 //
-void reverseStr(char *s) {
+inline void reverseStr(char *s) {
     for (int i = 0, j = strlen(s) - 1; i < j; i++, j--) {
         char tmp = s[i];
         s[i] = s[j];
@@ -142,7 +145,7 @@ void compositeFighter(const char *fighterName, CALLBACK_FUNC cb) {
         compositeImages(bg, fg, FIGHTER_OFFSET);
 
         char outputPath[50] = {0};
-        sprintf(outputPath, "static/%s.jpg", fighterName);
+        sprintf(outputPath, "../gz-feed/fighter/%s.jpg", fighterName);
 
         imwrite(outputPath, bg);
 
@@ -162,34 +165,36 @@ void compositeFighter(const char *fighterName, CALLBACK_FUNC cb) {
 void compositeScore(const PlayerData *player1,
                     const PlayerData *player2,
                     const char *output,
+                    const char *lang,
                     bool isUnicode,
                     CALLBACK_FUNC cb) {
-    Mat bg, avatar1, avatar2;
-    Mat mask, roi;
+    Mat bg, avatar1, avatar2, rankUp;
+    Mat mask, roi;  // roi: region of interest
 
     try {
         // -1 to read alpha channel
         bg = imread(SCORE_CANVAS, -1);
 
         // Avatars
-        char a1[100] = {0};
-        char a2[100] = {0};
+        char a1[200] = {0};
+        char a2[200] = {0};
 
         sprintf(a1, "avatars/%s", player1->avatar);
         sprintf(a2, "avatars/%s", player2->avatar);
 
         avatar1 = imread(a1);
+        resize(avatar1, avatar1, AVATAR_SIZE);
         mask = imread(a1, 0);
+        resize(mask, mask, AVATAR_SIZE);
         roi = bg(Rect(PLAYER1_AVATAR_OFFSET.x, PLAYER1_AVATAR_OFFSET.y, mask.cols, mask.rows));
         avatar1.copyTo(roi, mask);
 
         avatar2 = imread(a2);
+        resize(avatar2, avatar2, AVATAR_SIZE);
         mask = imread(a2, 0);
+        resize(mask, mask, AVATAR_SIZE);
         roi = bg(Rect(PLAYER2_AVATAR_OFFSET.x, PLAYER2_AVATAR_OFFSET.y, mask.cols, mask.rows));
         avatar2.copyTo(roi, mask);
-
-        //compositeImages(bg, avatar1, PLAYER1_AVATAR_OFFSET);
-        //compositeImages(bg, avatar2, PLAYER2_AVATAR_OFFSET);
 
         i18nText i18n;
         if (isUnicode) {
@@ -202,6 +207,12 @@ void compositeScore(const PlayerData *player1,
         i18n.putText(bg, player1->name, PLAYER1_NAME_OFFSET, PLAYER_NAME_COLOR);
         i18n.putText(bg, player2->name, PLAYER2_NAME_OFFSET, PLAYER_NAME_COLOR);
 
+        // Text: Rank Up
+        char rankUpName[40] = {0};
+        sprintf(rankUpName, "assets/battle_%s.png", lang);
+        rankUp = imread(rankUpName, -1);
+        compositeImages(bg, rankUp, RANK_UP_OFFSET);
+
         // Scores
         char score1[20] = {0};
         char score2[20] = {0};
@@ -213,7 +224,7 @@ void compositeScore(const PlayerData *player1,
         printScore(bg, score2, 2, PLAYER2_SCORE_CENTER);
 
         char outputPath[100] = {0};
-        sprintf(outputPath, "static/%s", output);
+        sprintf(outputPath, "../gz-feed/battle/%s", output);
         imwrite(outputPath, bg);
 
         if (cb) {
